@@ -9,6 +9,8 @@ import VehicleCard, { Vehicle } from '@/components/VehicleCard';
 import DriverCard, { Driver } from '@/components/DriverCard';
 import RideProgress from '@/components/RideProgress';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 
 type RideStatus = 'idle' | 'selectVehicle' | 'searching' | 'matched' | 'arriving' | 'inProgress' | 'completed';
 
@@ -32,10 +34,18 @@ const mockDriver: Driver = {
 
 const Index = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const { user, loading } = useAuth();
   const [pickup, setPickup] = useState('Current Location');
   const [destination, setDestination] = useState('');
   const [selectedVehicle, setSelectedVehicle] = useState<string | null>(null);
   const [rideStatus, setRideStatus] = useState<RideStatus>('idle');
+
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate('/auth');
+    }
+  }, [user, loading, navigate]);
 
   const handleSearch = () => {
     if (!destination) {
@@ -97,15 +107,48 @@ const Index = () => {
     }, 5000);
   };
 
-  const handleCompleteRide = () => {
+  const handleCompleteRide = async () => {
+    // Save ride to history
+    if (user && selectedVehicle) {
+      const vehicle = vehicles.find(v => v.id === selectedVehicle);
+      try {
+        await supabase.from('rides').insert({
+          user_id: user.id,
+          pickup_location: pickup,
+          destination: destination,
+          vehicle_type: vehicle?.name || 'RideX Go',
+          driver_name: mockDriver.name,
+          driver_rating: mockDriver.rating,
+          fare: vehicle?.price || 12.50,
+          status: 'completed',
+          started_at: new Date(Date.now() - 300000).toISOString(),
+          completed_at: new Date().toISOString(),
+        });
+      } catch (error) {
+        console.error('Error saving ride:', error);
+      }
+    }
+    
     setRideStatus('idle');
     setDestination('');
     setSelectedVehicle(null);
     toast({
       title: "Thanks for riding!",
-      description: "Rate your experience",
+      description: "Your ride has been saved to history",
     });
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-background relative">

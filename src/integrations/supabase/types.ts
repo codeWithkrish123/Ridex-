@@ -14,7 +14,81 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          full_name: string | null
+          id: string
+          phone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      rides: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          destination: string
+          driver_name: string | null
+          driver_rating: number | null
+          fare: number
+          id: string
+          pickup_location: string
+          started_at: string | null
+          status: string
+          user_id: string
+          vehicle_type: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          destination: string
+          driver_name?: string | null
+          driver_rating?: number | null
+          fare: number
+          id?: string
+          pickup_location: string
+          started_at?: string | null
+          status?: string
+          user_id: string
+          vehicle_type: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          destination?: string
+          driver_name?: string | null
+          driver_rating?: number | null
+          fare?: number
+          id?: string
+          pickup_location?: string
+          started_at?: string | null
+          status?: string
+          user_id?: string
+          vehicle_type?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
