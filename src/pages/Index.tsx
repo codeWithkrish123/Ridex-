@@ -8,6 +8,7 @@ import LocationInput from '@/components/LocationInput';
 import VehicleCard, { Vehicle } from '@/components/VehicleCard';
 import DriverCard, { Driver } from '@/components/DriverCard';
 import RideProgress from '@/components/RideProgress';
+import PaymentSheet from '@/components/PaymentSheet';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -40,6 +41,7 @@ const Index = () => {
   const [destination, setDestination] = useState('');
   const [selectedVehicle, setSelectedVehicle] = useState<string | null>(null);
   const [rideStatus, setRideStatus] = useState<RideStatus>('idle');
+  const [showPayment, setShowPayment] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -68,6 +70,12 @@ const Index = () => {
       });
       return;
     }
+    // Show payment sheet before starting ride
+    setShowPayment(true);
+  };
+
+  const handlePaymentComplete = () => {
+    setShowPayment(false);
     setRideStatus('searching');
     
     // Simulate finding driver
@@ -137,6 +145,8 @@ const Index = () => {
       description: "Your ride has been saved to history",
     });
   };
+
+  const selectedVehicleData = vehicles.find(v => v.id === selectedVehicle);
 
   if (loading) {
     return (
@@ -327,6 +337,21 @@ const Index = () => {
           </div>
         )}
       </main>
+
+      {/* Payment Sheet */}
+      {selectedVehicleData && (
+        <PaymentSheet
+          open={showPayment}
+          onOpenChange={setShowPayment}
+          amount={selectedVehicleData.price}
+          rideDetails={{
+            pickup,
+            destination,
+            vehicleType: selectedVehicleData.name,
+          }}
+          onPaymentComplete={handlePaymentComplete}
+        />
+      )}
     </div>
   );
 };
