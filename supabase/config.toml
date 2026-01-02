@@ -1,1 +1,10 @@
 project_id = "syonabmcwjndpkcmnazy"
+
+[functions.create-payment]
+verify_jwt = false
+
+[functions.add-payment-method]
+verify_jwt = false
+
+[functions.get-payment-methods]
+verify_jwt = false
