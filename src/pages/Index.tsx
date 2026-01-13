@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Header from '@/components/Header';
-import GoogleMap from '@/components/GoogleMap';
+import MapBackground from '@/components/MapBackground';
 import LocationInput from '@/components/LocationInput';
 import VehicleCard, { Vehicle } from '@/components/VehicleCard';
 import DriverCard, { Driver } from '@/components/DriverCard';
@@ -162,7 +162,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background relative">
-      <GoogleMap pickup={pickup} destination={destination} />
+      <MapBackground />
       <Header 
         showBack={rideStatus !== 'idle'} 
         onBack={() => rideStatus === 'selectVehicle' ? setRideStatus('idle') : handleCancelRide()}
