@@ -1,7 +1,0 @@
-Starting debug...
-driverController require success
-driverController keys: updateLocation, acceptRide, completeRide, getAvailableDrivers
-updateLocation type: function
-acceptRide type: function
-completeRide type: function
-getAvailableDrivers type: function
