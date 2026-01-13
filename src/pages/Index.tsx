@@ -4,6 +4,7 @@ import { ArrowRight, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Header from '@/components/Header';
 import MapBackground from '@/components/MapBackground';
+import GoogleMap from '@/components/GoogleMap';
 import LocationInput from '@/components/LocationInput';
 import VehicleCard, { Vehicle } from '@/components/VehicleCard';
 import DriverCard, { Driver } from '@/components/DriverCard';
@@ -160,10 +161,25 @@ const Index = () => {
     return null;
   }
 
+  const showMap = rideStatus !== 'idle';
+
   return (
     <div className="min-h-screen bg-background relative">
-      <MapBackground />
-      <Header 
+      {/* Show Google Map when ride is active, otherwise show background */}
+      {showMap ? (
+        <div className="absolute inset-0 z-0">
+          <GoogleMap 
+            pickup={pickup} 
+            destination={destination}
+            showRoute={true}
+          />
+          {/* Gradient overlay for readability */}
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent pointer-events-none" />
+        </div>
+      ) : (
+        <MapBackground />
+      )}
+      <Header
         showBack={rideStatus !== 'idle'} 
         onBack={() => rideStatus === 'selectVehicle' ? setRideStatus('idle') : handleCancelRide()}
       />
