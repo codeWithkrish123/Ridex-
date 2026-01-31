@@ -20,7 +20,7 @@ exports.registerUser = async (req, res, next) => {
             password,
         });
 
-        sendTokenResponse(user, 201, res);
+        sendTokenResponse(user, 200, res);
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }
@@ -42,14 +42,14 @@ exports.loginUser = async (req, res, next) => {
         const user = await User.findOne({ email }).select('+password');
 
         if (!user) {
-            return res.status(401).json({ success: false, message: 'Invalid credentials' });
+            return res.status(401).json({ success: false, message: 'Invalid login credentials' });
         }
 
         // Check if password matches
         const isMatch = await user.matchPassword(password);
 
         if (!isMatch) {
-            return res.status(401).json({ success: false, message: 'Invalid credentials' });
+            return res.status(401).json({ success: false, message: 'Invalid login credentials' });
         }
 
         sendTokenResponse(user, 200, res);

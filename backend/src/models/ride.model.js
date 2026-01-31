@@ -1,29 +1,28 @@
 const mongoose = require('mongoose');
 
 const rideSchema = new mongoose.Schema({
-    user: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: true
-    },
     pickup: {
         address: { type: String, required: true },
-        lat: { type: Number, required: true },
-        lng: { type: Number, required: true }
+        lat: { type: Number },
+        lng: { type: Number }
     },
     destination: {
         address: { type: String, required: true },
-        lat: { type: Number, required: true },
-        lng: { type: Number, required: true }
+        lat: { type: Number },
+        lng: { type: Number }
     },
     fare: {
         type: Number,
         required: true
     },
+    tip: {
+        type: Number,
+        default: 0
+    },
     vehicleType: {
         type: String,
         required: true,
-        enum: ['auto', 'car', 'moto']
+        enum: ['auto', 'car', 'moto', 'RideX Go', 'RideX Comfort', 'RideX Black', 'RideX XL']
     },
     status: {
         type: String,
@@ -36,23 +35,10 @@ const rideSchema = new mongoose.Schema({
     distance: {
         type: Number, // in meters
     },
-    paymentId: {
-        type: String,
-    },
-    orderId: {
-        type: String,
-    },
-    signature: {
-        type: String,
-    },
     otp: {
         type: String,
         select: false,
     },
-    driver: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User'
-    }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Ride', rideSchema);

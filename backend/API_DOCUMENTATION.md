@@ -57,6 +57,7 @@ Use these details to test your backend using Postman.
     - `Authorization`: `Bearer <YOUR_TOKEN_HERE>`
 - **Body** (JSON):
 ```json
+
 {
   "pickup": {
     "address": "123 Main St, New York, NY",
