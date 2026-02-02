@@ -29,5 +29,6 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ./RideX
+          file: ./RideX/Dockerfile
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/ridex-frontend:latest
