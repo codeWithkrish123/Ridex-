@@ -1,11 +1,10 @@
 const dotenv = require('dotenv');
+dotenv.config();
 const connectDB = require('./config/db');
 const app = require('./app');
 const http = require('http');
 const { Server } = require('socket.io');
 
-// Load env vars
-dotenv.config();
 
 // Connect to database
 connectDB();
