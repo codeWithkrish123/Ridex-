@@ -41,7 +41,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ./RideX  
-          file: ./RideX/Dockerfile 
+          file:q ./RideX/Dockerfile 
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/ridex-frontend:latest
           cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/ridex-frontend:latest
