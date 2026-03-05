@@ -41,8 +41,43 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ./RideX  
-          file:q ./RideX/Dockerfile 
+          file: ./RideX/Dockerfile 
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/ridex-frontend:latest
           cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/ridex-frontend:latest
           cache-to: type=inline
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    
+    steps:
+      # 6️⃣ Checkout source code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 7️⃣ Deploy to server
+      - name: Deploy to Production Server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            # Navigate to project directory
+            cd /home/${{ secrets.SERVER_USER }}/ridex
+            
+            # Pull latest images
+            docker pull ${{ secrets.DOCKER_USERNAME }}/ridex-backend:latest
+            docker pull ${{ secrets.DOCKER_USERNAME }}/ridex-frontend:latest
+            
+            # Stop existing containers
+            docker-compose down
+            
+            # Start new containers
+            docker-compose up -d
+            
+            # Clean up old images
+            docker image prune -f
+            
+            echo "Deployment completed successfully!"
