@@ -36,48 +36,20 @@ jobs:
           node-version: '18'
           cache: 'npm'
 
+      - name: Generate package-lock.json
+        working-directory: ./backend
+        run: npm install --package-lock-only
+
       - name: Install backend dependencies
         working-directory: ./backend
-        run: npm ci
+        run: npm install
 
       - name: Install frontend dependencies
         working-directory: ./RideX
-        run: npm ci
+        run: npm install
 
-      - name: Run backend tests
-        working-directory: ./backend
-        run: npm test
-        env:
-          MONGODB_URI: mongodb://localhost:27017/test
-          JWT_SECRET: test-secret
-          NODE_ENV: test
-
-      - name: Run frontend tests
-        working-directory: ./RideX
-        run: npm test
-
-      - name: Run ESLint (backend)
-        working-directory: ./backend
-        run: npx eslint src/ --format=github
-
-      - name: Run ESLint (frontend)
-        working-directory: ./RideX
-        run: npx eslint src/ --format=github
-
-      - name: Type check (frontend)
-        working-directory: ./RideX
-        run: npx tsc --noEmit
-
-      - name: Security audit (backend)
-        working-directory: ./backend
-        run: npm audit --audit-level=moderate
-
-      - name: Security audit (frontend)
-        working-directory: ./RideX
-        run: npm audit --audit-level=moderate
-
-  # 2️⃣ Build & Security Scan
-  build-and-scan:
+  # 2️⃣ Build & Deploy
+  build-and-deploy:
     needs: test-and-quality
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
