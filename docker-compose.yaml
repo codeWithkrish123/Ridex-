@@ -2,35 +2,21 @@ version: "3.9"
 
 services:
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: krish1406/ridex-backend:latest
     container_name: ridex-backend
     ports:
       - "5000:5000"
     environment:
       PORT: 5000
     env_file:
-      - ./backend/.env
+      - .env
     restart: unless-stopped
-    networks:
-      - ridex-network
 
   frontend:
-    build:
-      context: ./RideX
-      dockerfile: Dockerfile
+    image: krish1406/ridex-frontend:latest
     container_name: ridex-frontend
     ports:
-      - "5173:5173"
-    environment:
-      VITE_API_URL: http://backend:5000
+      - "80:5173"
     depends_on:
       - backend
     restart: unless-stopped
-    networks:
-      - ridex-network
-
-networks:
-  ridex-network:
-    driver: bridge
