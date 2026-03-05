@@ -1,0 +1,326 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  REGISTRY: docker.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # 1️⃣ Code Quality & Testing
+  test-and-quality:
+    runs-on: ubuntu-latest
+    
+    services:
+      mongodb:
+        image: mongo:6.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.runCommand({ping: 1})'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install backend dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Install frontend dependencies
+        working-directory: ./RideX
+        run: npm ci
+
+      - name: Run backend tests
+        working-directory: ./backend
+        run: npm test
+        env:
+          MONGODB_URI: mongodb://localhost:27017/test
+          JWT_SECRET: test-secret
+          NODE_ENV: test
+
+      - name: Run frontend tests
+        working-directory: ./RideX
+        run: npm test
+
+      - name: Run ESLint (backend)
+        working-directory: ./backend
+        run: npx eslint src/ --format=github
+
+      - name: Run ESLint (frontend)
+        working-directory: ./RideX
+        run: npx eslint src/ --format=github
+
+      - name: Type check (frontend)
+        working-directory: ./RideX
+        run: npx tsc --noEmit
+
+      - name: Security audit (backend)
+        working-directory: ./backend
+        run: npm audit --audit-level=moderate
+
+      - name: Security audit (frontend)
+        working-directory: ./RideX
+        run: npm audit --audit-level=moderate
+
+  # 2️⃣ Build & Security Scan
+  build-and-scan:
+    needs: test-and-quality
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_ACCESS_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and test backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: false
+          load: true
+          tags: ridex-backend:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Test backend container
+        run: |
+          docker run --rm -d --name test-backend -p 5000:5000 ridex-backend:test
+          sleep 10
+          curl -f http://localhost:5000/ || exit 1
+          docker stop test-backend
+
+      - name: Build and test frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./RideX
+          file: ./RideX/Dockerfile
+          push: false
+          load: true
+          tags: ridex-frontend:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Security scan backend
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ridex-backend:test
+          format: 'sarif'
+          output: 'trivy-backend-results.sarif'
+
+      - name: Security scan frontend
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ridex-frontend:test
+          format: 'sarif'
+          output: 'trivy-frontend-results.sarif'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-backend-results.sarif'
+
+      - name: Push backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/ridex-backend:latest
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Push frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./RideX
+          file: ./RideX/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/ridex-frontend:latest
+          labels: ${{ steps.meta.outputs.labels }}
+
+  # 3️⃣ Deploy to Staging
+  deploy-staging:
+    needs: build-and-scan
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment: staging
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to Staging
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.STAGING_HOST }}
+          username: ${{ secrets.STAGING_USER }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          script: |
+            cd /home/${{ secrets.STAGING_USER }}/ridex-staging
+            docker-compose -f docker-compose.staging.yml down
+            docker pull ${{ secrets.DOCKER_USERNAME }}/ridex-backend:latest
+            docker pull ${{ secrets.DOCKER_USERNAME }}/ridex-frontend:latest
+            docker-compose -f docker-compose.staging.yml up -d
+            echo "Staging deployment completed"
+
+      - name: Run integration tests on staging
+        run: |
+          sleep 30
+          curl -f ${{ secrets.STAGING_URL }}/api/ || exit 1
+          curl -f ${{ secrets.STAGING_URL }}/ || exit 1
+
+  # 4️⃣ Deploy to Production
+  deploy-production:
+    needs: deploy-staging
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment: production
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to Production
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            cd /home/${{ secrets.SERVER_USER }}/ridex
+            
+            # Create backup
+            echo "Creating backup..."
+            docker-compose down
+            
+            # Pull new images
+            echo "Pulling new images..."
+            docker pull ${{ secrets.DOCKER_USERNAME }}/ridex-backend:latest
+            docker pull ${{ secrets.DOCKER_USERNAME }}/ridex-frontend:latest
+            
+            # Start new containers
+            echo "Starting new containers..."
+            docker-compose up -d
+            
+            # Health checks
+            echo "Waiting for health checks..."
+            sleep 45
+            
+            # Check service health
+            BACKEND_HEALTH=$(docker inspect --format='{{.State.Health.Status}}' ridex-backend 2>/dev/null || echo "unknown")
+            FRONTEND_HEALTH=$(docker inspect --format='{{.State.Health.Status}}' ridex-frontend 2>/dev/null || echo "unknown")
+            
+            echo "Backend health: $BACKEND_HEALTH"
+            echo "Frontend health: $FRONTEND_HEALTH"
+            
+            # Rollback if unhealthy
+            if [[ "$BACKEND_HEALTH" != "healthy" || "$FRONTEND_HEALTH" != "healthy" ]]; then
+              echo "Health check failed. Rolling back..."
+              docker-compose down
+              
+              # Pull previous images
+              docker pull ${{ secrets.DOCKER_USERNAME }}/ridex-backend:previous || echo "No previous backend image"
+              docker pull ${{ secrets.DOCKER_USERNAME }}/ridex-frontend:previous || echo "No previous frontend image"
+              
+              # Update to previous version
+              if docker images | grep -q "ridex-backend.*previous"; then
+                sed -i 's/:latest/:previous/g' docker-compose.yaml
+              fi
+              
+              docker-compose up -d
+              echo "Rollback completed"
+              exit 1
+            fi
+            
+            # Tag current as previous for next rollback
+            docker tag ${{ secrets.DOCKER_USERNAME }}/ridex-backend:latest ${{ secrets.DOCKER_USERNAME }}/ridex-backend:previous
+            docker tag ${{ secrets.DOCKER_USERNAME }}/ridex-frontend:latest ${{ secrets.DOCKER_USERNAME }}/ridex-frontend:previous
+            docker push ${{ secrets.DOCKER_USERNAME }}/ridex-backend:previous
+            docker push ${{ secrets.DOCKER_USERNAME }}/ridex-frontend:previous
+            
+            # Cleanup
+            docker image prune -f
+            echo "Production deployment completed successfully!"
+
+  # 5️⃣ Notify Teams
+  notify:
+    needs: [deploy-production]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+      - name: Notify Teams on Success
+        if: needs.deploy-production.result == 'success'
+        uses: jdcargile/ms-teams-notify-action@v1
+        with:
+          webhook_url: ${{ secrets.TEAMS_WEBHOOK }}
+          title: "✅ RideX Deployment Successful"
+          summary: "Successfully deployed to production"
+          text: "The latest changes have been successfully deployed to production environment."
+
+      - name: Notify Teams on Failure
+        if: needs.deploy-production.result == 'failure'
+        uses: jdcargile/ms-teams-notify-action@v1
+        with:
+          webhook_url: ${{ secrets.TEAMS_WEBHOOK }}
+          title: "❌ RideX Deployment Failed"
+          summary: "Deployment to production failed"
+          text: "The deployment failed and rollback was triggered. Please check the logs."
+
+  # 6️⃣ Update Documentation
+  update-docs:
+    needs: deploy-production
+    runs-on: ubuntu-latest
+    if: needs.deploy-production.result == 'success'
+    
+    steps:
+      - name: Checkout documentation repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ secrets.DOCS_REPO }}
+          token: ${{ secrets.DOCS_TOKEN }}
+          path: docs
+
+      - name: Update deployment status
+        run: |
+          cd docs
+          echo "Last deployed: $(date)" > deployment-status.md
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add deployment-status.md
+          git commit -m "Update deployment status"
+          git push

@@ -1,5 +1,6 @@
 const Ride = require('../models/ride.model');
 const { validationResult } = require('express-validator');
+const logger = require('../utils/logger');
 
 // @desc    Create a new ride
 // @route   POST /api/rides/create
@@ -13,7 +14,7 @@ exports.createRide = async (req, res, next) => {
     try {
         const { pickup, destination, vehicleType, fare, tip, capacity } = req.body;
 
-        console.log('Creating ride with data:', req.body); // Debug log
+        logger.debug('Creating ride with data:', { pickup, destination, vehicleType, fare, tip, capacity, userId: req.user.id });
 
         const newRide = await Ride.create({
             user: req.user.id,
@@ -26,11 +27,11 @@ exports.createRide = async (req, res, next) => {
             otp: getOtp(4),
         });
 
-        console.log('Ride created in DB:', newRide); // Debug log
+        logger.info('Ride created successfully', { rideId: newRide._id, userId: req.user.id });
 
         res.status(201).json(newRide);
     } catch (err) {
-        console.error('Error creating ride:', err); // Debug log
+        logger.error('Error creating ride', { error: err.message, userId: req.user?.id });
         return res.status(500).json({ message: err.message });
     }
 };
@@ -41,8 +42,10 @@ exports.createRide = async (req, res, next) => {
 exports.getUserRides = async (req, res) => {
     try {
         const rides = await Ride.find({ user: req.user.id }).sort({ createdAt: -1 });
+        logger.debug('Retrieved user rides', { userId: req.user.id, count: rides.length });
         res.status(200).json(rides);
     } catch (err) {
+        logger.error('Error getting user rides', { error: err.message, userId: req.user?.id });
         res.status(500).json({ message: err.message });
     }
 };
@@ -57,6 +60,7 @@ exports.updateRide = async (req, res) => {
         const ride = await Ride.findById(req.params.id);
 
         if (!ride) {
+            logger.warn('Ride not found for update', { rideId: req.params.id, userId: req.user?.id });
             return res.status(404).json({ message: 'Ride not found' });
         }
 
@@ -69,8 +73,10 @@ exports.updateRide = async (req, res) => {
 
         await ride.save();
 
+        logger.info('Ride updated successfully', { rideId: ride._id, status, paymentStatus, userId: req.user?.id });
         res.status(200).json(ride);
     } catch (err) {
+        logger.error('Error updating ride', { error: err.message, rideId: req.params.id, userId: req.user?.id });
         res.status(500).json({ message: err.message });
     }
 };

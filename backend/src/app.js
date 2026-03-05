@@ -21,9 +21,11 @@ app.use(cookieParser());
 // Routes
 const userRoutes = require('./routes/user.routes');
 const rideRoutes = require('./routes/ride.routes');
+const mapsRoutes = require('./routes/maps.routes');
 
 app.use('/api/users', userRoutes);
 app.use('/api/rides', rideRoutes);
+app.use('/api/maps', mapsRoutes);
 
 app.get('/', (req, res) => {
   res.send('RideX API is running');

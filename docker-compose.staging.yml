@@ -3,13 +3,14 @@ version: "3.9"
 services:
   backend:
     image: krish1406/ridex-backend:latest
-    container_name: ridex-backend
+    container_name: ridex-backend-staging
     ports:
-      - "5000:5000"
+      - "5001:5000"
     environment:
       PORT: 5000
+      NODE_ENV: staging
     env_file:
-      - .env
+      - .env.staging
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/"]
@@ -20,9 +21,9 @@ services:
 
   frontend:
     image: krish1406/ridex-frontend:latest
-    container_name: ridex-frontend
+    container_name: ridex-frontend-staging
     ports:
-      - "80:5173"
+      - "5174:5173"
     depends_on:
       - backend
     restart: unless-stopped

@@ -23,7 +23,7 @@ jobs:
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+          password: ${{ secrets.DOCKER_ACCESS_TOKEN }}
 
       # 4️⃣ Build & push Backend image
       - name: Build and push Backend
@@ -67,15 +67,54 @@ jobs:
             # Navigate to project directory
             cd /home/${{ secrets.SERVER_USER }}/ridex
             
+            # Backup current containers
+            echo "Creating backup of current deployment..."
+            docker-compose down
+            
             # Pull latest images
+            echo "Pulling new images..."
             docker pull ${{ secrets.DOCKER_USERNAME }}/ridex-backend:latest
             docker pull ${{ secrets.DOCKER_USERNAME }}/ridex-frontend:latest
             
-            # Stop existing containers
-            docker-compose down
-            
             # Start new containers
+            echo "Starting new containers..."
             docker-compose up -d
+            
+            # Wait for health checks
+            echo "Waiting for services to be healthy..."
+            sleep 30
+            
+            # Check if backend is healthy
+            BACKEND_HEALTH=$(docker inspect --format='{{.State.Health.Status}}' ridex-backend 2>/dev/null || echo "unknown")
+            FRONTEND_HEALTH=$(docker inspect --format='{{.State.Health.Status}}' ridex-frontend 2>/dev/null || echo "unknown")
+            
+            echo "Backend health: $BACKEND_HEALTH"
+            echo "Frontend health: $FRONTEND_HEALTH"
+            
+            # If services are not healthy after 60 seconds, rollback
+            if [[ "$BACKEND_HEALTH" != "healthy" || "$FRONTEND_HEALTH" != "healthy" ]]; then
+              echo "Health check failed. Rolling back..."
+              docker-compose down
+              
+              # Pull previous images (assuming they're tagged as :previous)
+              docker pull ${{ secrets.DOCKER_USERNAME }}/ridex-backend:previous || echo "No previous backend image found"
+              docker pull ${{ secrets.DOCKER_USERNAME }}/ridex-frontend:previous || echo "No previous frontend image found"
+              
+              # Update docker-compose to use previous tags
+              if docker images | grep -q "ridex-backend.*previous"; then
+                sed -i 's/:latest/:previous/g' docker-compose.yaml
+              fi
+              
+              docker-compose up -d
+              echo "Rollback completed. Previous version deployed."
+              exit 1
+            fi
+            
+            # If successful, tag current images as previous for next rollback
+            docker tag ${{ secrets.DOCKER_USERNAME }}/ridex-backend:latest ${{ secrets.DOCKER_USERNAME }}/ridex-backend:previous
+            docker tag ${{ secrets.DOCKER_USERNAME }}/ridex-frontend:latest ${{ secrets.DOCKER_USERNAME }}/ridex-frontend:previous
+            docker push ${{ secrets.DOCKER_USERNAME }}/ridex-backend:previous
+            docker push ${{ secrets.DOCKER_USERNAME }}/ridex-frontend:previous
             
             # Clean up old images
             docker image prune -f
