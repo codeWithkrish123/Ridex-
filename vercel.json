@@ -1,8 +1,7 @@
 {
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "installCommand": "npm install",
-  "rootDirectory": "RideX",
+  "buildCommand": "cd RideX && npm run build",
+  "outputDirectory": "RideX/dist",
+  "installCommand": "cd RideX && npm install",
   "env": {
     "VITE_API_BASE_URL": "https://ridex-backend-0cx5.onrender.com"
   }
