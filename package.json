@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "concurrently \"npm start --prefix backend\" \"npm run dev --prefix RideX\""
+    "dev": "concurrently \"npm start --prefix backend\" \"npm run dev --prefix RideX\"",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "repository": {
     "type": "git",
