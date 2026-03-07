@@ -1,4 +1,5 @@
 {
+  "name": "ridex",
   "rootDirectory": "RideX",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
