@@ -1,13 +1,12 @@
 {
   "name": "ridex",
-  "rootDirectory": "RideX",
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "installCommand": "npm install",
+  "buildCommand": "cd RideX && npm run build",
+  "outputDirectory": "RideX/dist",
+  "installCommand": "cd RideX && npm install",
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "/index.html"
+      "dest": "/RideX/index.html"
     }
   ],
   "env": {
