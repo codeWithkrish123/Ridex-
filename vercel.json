@@ -7,7 +7,8 @@
       "config": {
         "distDir": "dist",
         "buildCommand": "npm run build",
-        "installCommand": "npm install"
+        "installCommand": "npm install",
+        "rootDirectory": "RideX"
       }
     }
   ],
@@ -17,7 +18,7 @@
       "dest": "/RideX/index.html"
     }
   ],
-  
+    
   "buildCommand": "cd RideX && npm run build",
   "outputDirectory": "RideX/dist",
   "installCommand": "cd RideX && npm install",
