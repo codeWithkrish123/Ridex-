@@ -1,20 +1,7 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "RideX/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist"
-      }
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/RideX/index.html"
-    }
-  ],
+  "buildCommand": "cd RideX && npm run build",
+  "outputDirectory": "RideX/dist",
+  "installCommand": "cd RideX && npm install",
   "env": {
     "VITE_API_BASE_URL": "https://ridex-backend-0cx5.onrender.com"
   }
