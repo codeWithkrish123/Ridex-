@@ -2,6 +2,10 @@
   "version": 2,
   "builds": [
     {
+      "src": "api/index.js",
+      "use": "@vercel/node"
+    },
+    {
       "src": "RideX/package.json",
       "use": "@vercel/static-build",
       "config": {
@@ -11,11 +15,15 @@
   ],
   "routes": [
     {
+      "src": "/api/(.*)",
+      "dest": "/api/index.js"
+    },
+    {
       "src": "/(.*)",
       "dest": "/RideX/index.html"
     }
   ],
   "env": {
-    "VITE_API_BASE_URL": "https://ridex-backend-0cx5.onrender.com"
+    "NODE_ENV": "production"
   }
 }
