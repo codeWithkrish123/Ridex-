@@ -8,14 +8,14 @@
       "config": {
         "installCommand": "npm install",
         "buildCommand": "npm run build",
-        "distDir": "dist"
+        "distDir": "RideX/dist"
       }
     }
   ],
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "/RideX/index.html"
+      "dest": "/index.html"
     }
   ],
   "env": {
