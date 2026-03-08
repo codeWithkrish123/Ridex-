@@ -7,7 +7,9 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "concurrently \"npm start --prefix backend\" \"npm run dev --prefix RideX\"",
     "build": "vite build",
-    "preview": "vite preview"
+    "build:dev": "vite build --mode development",
+    "preview": "vite preview",
+    "vercel-build": "cd RideX && npm install --include=dev && npm run build"
   },
   "repository": {
     "type": "git",
