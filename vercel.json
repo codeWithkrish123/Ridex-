@@ -1,21 +1,9 @@
 {
-  "name": "ridex",
   "version": 2,
-  "builds": [
+  "rewrites": [
     {
-      "src": "RideX/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "installCommand": "npm install",
-        "buildCommand": "npm run build",
-        "distDir": "RideX/dist"
-      }
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ],
   "env": {
